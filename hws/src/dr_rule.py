@@ -125,9 +125,9 @@ def split_dict(dic, slice_size):
     return slices
 
 
-def dr_parse_rules(matcher, verbosity, tabs):
-    _str = ''
+def dr_parse_rules(matcher, verbosity, tabs, output_file):
     _tabs = tabs + TAB
+    has_parsed_rule = False
     progress_bar_i = _config_args.get("progress_bar_i")
     progress_bar_total = _db._total_matcher_match_fw_stes[0]
     if progress_bar_i == 0:
@@ -217,10 +217,12 @@ def dr_parse_rules(matcher, verbosity, tabs):
                 slice_idx, result = resp_q.get(timeout=1)
             except Exception as e:
                 continue
+            if result:
+                has_parsed_rule = True
             if _config_args["ordered_output"]:
                 results[slice_idx] = result
             else:
-                _str += result
+                output_file.write(result)
 
         [p.join() for p in processes]
         gc.enable()
@@ -229,11 +231,11 @@ def dr_parse_rules(matcher, verbosity, tabs):
         # be slower.
         if _config_args["ordered_output"]:
             for _, s in sorted(results.items()):
-                _str += s
+                output_file.write(s)
 
         progress_bar_i += 1
         interactive_progress_bar(progress_bar_i, progress_bar_total, PARSING_THE_RULES_STR)
 
     _config_args["progress_bar_i"] = progress_bar_i
 
-    return _str
+    return has_parsed_rule
